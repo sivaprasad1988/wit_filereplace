@@ -61,10 +61,17 @@ final class ReplaceImageSourceMiddleware implements MiddlewareInterface
         ));
 
         $stream = new Stream('php://temp', 'rw');
-        $stream->write((string)$body);
+        $stream->write($body);
         $stream->rewind();
 
-        return $response->withBody($stream);
+        $response = $response->withBody($stream);
+        // Runs after typo3/cms-frontend/content-length-headers on the way out,
+        // so the header still carries the length of the original body
+        if ($response->hasHeader('Content-Length')) {
+            $response = $response->withHeader('Content-Length', (string)strlen($body));
+        }
+
+        return $response;
     }
 
     private static function replacePlaceholders(string $html, string $placeholder): string
